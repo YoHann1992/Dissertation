@@ -101,9 +101,21 @@ public class BodySourceView : MonoBehaviour
                 {
                     _Bodies[body.TrackingId] = CreateBodyObject(body.TrackingId);
                 }
-                
+                KinectRightHandGrabUpdate(body);
                 RefreshBodyObject(body, _Bodies[body.TrackingId]);
             }
+        }
+    }
+
+    private void KinectRightHandGrabUpdate(Kinect.Body body)
+    {
+        if (body.HandRightState == Windows.Kinect.HandState.Closed)
+        {
+            ObjectManager.HandRightGrabbed = true;
+        }
+        else if (body.HandRightState == Windows.Kinect.HandState.Open)
+        {
+            ObjectManager.HandRightGrabbed = false;
         }
     }
     
@@ -123,6 +135,8 @@ public class BodySourceView : MonoBehaviour
             jointObj.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
             jointObj.name = jt.ToString();
             jointObj.transform.parent = body.transform;
+
+            Destroy(jointObj.GetComponent<Collider>());
         }
         
         return body;
@@ -133,6 +147,7 @@ public class BodySourceView : MonoBehaviour
         for (Kinect.JointType jt = Kinect.JointType.SpineBase; jt <= Kinect.JointType.ThumbRight; jt++)
         {
             Kinect.Joint sourceJoint = body.Joints[jt];
+            Kinect.JointOrientation sourceJointOrientation = body.JointOrientations[jt];
             Kinect.Joint? targetJoint = null;
             
             if(_BoneMap.ContainsKey(jt))
@@ -142,6 +157,8 @@ public class BodySourceView : MonoBehaviour
             
             Transform jointObj = bodyObject.transform.FindChild(jt.ToString());
             jointObj.localPosition = GetVector3FromJoint(sourceJoint);
+
+            jointObj.localRotation = GetVector4FromJoint(sourceJointOrientation);
             
             LineRenderer lr = jointObj.GetComponent<LineRenderer>();
             if(targetJoint.HasValue)
@@ -174,6 +191,11 @@ public class BodySourceView : MonoBehaviour
     
     private static Vector3 GetVector3FromJoint(Kinect.Joint joint)
     {
-        return new Vector3(joint.Position.X * 10, joint.Position.Y * 10, joint.Position.Z * 10);
+        return new Vector3(joint.Position.X * 10, joint.Position.Y * 10, joint.Position.Z * -10);
+    }
+
+    private static Quaternion GetVector4FromJoint(Kinect.JointOrientation joint)
+    {
+        return new Quaternion(joint.Orientation.W, joint.Orientation.X, joint.Orientation.Y, joint.Orientation.Z);
     }
 }
